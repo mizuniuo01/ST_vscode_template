@@ -1,0 +1,9 @@
+{
+    "cmake.environment": {
+        "PATH": "/path/to/arm-none-eabi-gcc/bin:${env:PATH}"
+    },
+    "cmake.preferredGenerators": ["Ninja"],
+    "cmake.configureOnOpen": false,
+    "cmake.buildDirectory": "${workspaceFolder}/build/${buildType}",
+    "C_Cpp.intelliSenseEngine": "disabled"
+}
