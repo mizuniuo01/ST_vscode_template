@@ -4,20 +4,19 @@
         {
             "label": "Build",
             "type": "shell",
-            "command": "cmake",
-            "args": ["--build", "--preset", "${command:cmake.buildType}"],
+            "command": "cmake --preset ${command:cmake.buildType} . && cmake --build --preset ${command:cmake.buildType}",
             "options": { "cwd": "${workspaceFolder}" },
             "group": { "kind": "build", "isDefault": true },
             "problemMatcher": ["$gcc"],
-            "detail": "增量编译"
+            "detail": "配置并增量编译"
         },
         {
             "label": "Rebuild",
             "type": "shell",
-            "command": "cmake --preset ${command:cmake.buildType} . && cmake --build --preset ${command:cmake.buildType}",
+            "command": "cmake --preset ${command:cmake.buildType} . && cmake --build --preset ${command:cmake.buildType} --clean-first",
             "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": ["$gcc"],
-            "detail": "重新配置并编译"
+            "detail": "重新配置、清理并完整编译"
         },
         {
             "label": "Clean",

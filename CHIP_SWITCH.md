@@ -36,27 +36,27 @@ When switching the target MCU series, update the following fields. / 更换目�
 
 ### Switching between F1 ↔ F4 / F1 ↔ F4 之间切换
 
-Use the existing config pair in the template — no new configs needed. In `settings.json`, pick the matching launch config (`F1-debug` / `F4-debug`). The Flash task label in `tasks.json` must match the `preLaunchTask` field. / 使用模板现有配置对，无需新建。在 `settings.json` 中选择匹配的 launch 配置（`F1-debug` / `F4-debug`）。`tasks.json` 中 Flash 任务标签需与 `preLaunchTask` 对应。
+Use the existing Flash/debug config pair in the template — no new configs needed. In `settings.json`, pick the matching launch config (`F1-flash` / `F1-debug` or `F4-flash` / `F4-debug`). The Flash task label in `tasks.json` must match the Flash wrapper's `preLaunchTask`. / 使用模板现有的 Flash/debug 配置对，无需新建。在 `settings.json` 中选择匹配的 launch 配置（`F1-flash` / `F1-debug` 或 `F4-flash` / `F4-debug`）。`tasks.json` 中 Flash 任务标签需与 Flash 包装配置的 `preLaunchTask` 对应。
 
 ### Switching to H7 / G0 / L4 / etc. / 切换到 H7 / G0 / L4 等未覆盖系列
 
 Two files need changes / 需修改两个文件：
 
-**`settings.json`** — copy an existing debug + download config pair, then update:
+**`settings.json`** — copy an existing debug + Flash wrapper pair, then update:
 
 | Field / 字段 | How to change / 修改方式 |
 |-------------|------------------------|
-| `name` | `{series}-debug` / `{series}-download` |
-| `device` | Target MCU identifier, e.g. `STM32H743ZI` / 目标芯片型号 |
-| `configFiles` target | e.g. `stm32h7x.cfg` — browse `<path-to-openocd>/scripts/target/` for the correct file / 在 OpenOCD scripts/target/ 下查看正确文件名 |
-| `svdFile` | `${workspaceFolder}/STM32H7xx.svd` |
-| `preLaunchTask` | Must match the new Flash task label / 需与 Flash 任务标签一致 |
+| `name` | `{series}-debug` / `{series}-flash` |
+| `device` | Debug only: target MCU identifier, e.g. `STM32H743ZI` / 仅 debug：目标芯片型号 |
+| `configFiles` target | Debug only: e.g. `stm32h7x.cfg` — browse `<path-to-openocd>/openocd/scripts/target/` / 仅 debug：在 OpenOCD scripts/target/ 下查看正确文件名 |
+| `svdFile` | Debug only: `${workspaceFolder}/STM32H7xx.svd` / 仅 debug |
+| `preLaunchTask` | Flash wrapper: new Flash task label; debug: `Build` / Flash 包装配置匹配新任务标签；debug 使用 `Build` |
 
 **`tasks.json`** — copy an existing Flash task, then update:
 
 | Field / 字段 | How to change / 修改方式 |
 |-------------|------------------------|
-| `label` | e.g. `Flash (H7)` — must match download config's `preLaunchTask` / 需与 download 配置的 `preLaunchTask` 一致 |
+| `label` | e.g. `Flash (H7)` — must match Flash wrapper's `preLaunchTask` / 需与 Flash 包装配置的 `preLaunchTask` 一致 |
 | `args` target cfg | e.g. `-f target/stm32h7x.cfg` |
 
 See GUIDE.md §14.1 for a detailed walkthrough. / 详细步骤见 GUIDE.md §14.1。

@@ -73,18 +73,20 @@ arm-none-eabi-gdb --version
 
 ---
 
-#### 4.2 Install CMake
+#### 4.2 Install CMake + Ninja
 
-CMake is used for project configuration and build generation. Ninja is bundled with CMake, no separate installation required.
+CMake manages project configuration and Ninja is the build backend. Install both explicitly on Windows; do not assume the CMake package includes a usable `ninja.exe`.
 
 ```powershell
-winget install Kitware.CMake
+winget install --id Kitware.CMake -e
+winget install --id Ninja-build.Ninja -e
 ```
 
 Verify:
 
 ```bash
 cmake --version
+ninja --version
 ```
 
 ---
@@ -95,6 +97,14 @@ Go to the OpenOCD website (openocd.org) → download the latest Windows release 
 
 ```
 D:/OpenOCD/
+```
+
+The Windows template expects the extracted package to contain these paths:
+
+```text
+D:/OpenOCD/bin/openocd.exe
+D:/OpenOCD/openocd/scripts/interface/stlink.cfg
+D:/OpenOCD/openocd/scripts/target/
 ```
 
 Verify:
@@ -181,7 +191,7 @@ Open the ST Profile and install the following extensions:
 
 | Extension                                      | Purpose                                     |
 | ---------------------------------------------- | ------------------------------------------- |
-| `ms-vscode.cpptools`                           | C/C++ IntelliSense + cppdbg debug backend   |
+| `ms-vscode.cpptools`                           | C/C++ IntelliSense + Windows Flash launch wrapper |
 | `ms-vscode.cmake-tools`                        | CMake integration: Configure / Build        |
 | `marus25.cortex-debug`                         | ARM Cortex-M debugging                      |
 | `xaver.clang-format`                           | C/C++ code formatting                       |
@@ -230,7 +240,7 @@ Windows:
 <path-to-openocd>
 ```
 
-OpenOCD directory (without `/bin`).
+OpenOCD installation root (without `/bin`). With the layout above, use `D:/OpenOCD`. If your distribution puts `scripts/` elsewhere, update both `cortex-debug` `configFiles` in `settings.json` and the `-s` argument in `tasks.json` together.
 
 ---
 
@@ -268,7 +278,7 @@ In the CMake sidebar, select the build preset:
 
 > Debugging requires the Debug preset. Release builds cannot set breakpoints, and pausing will not navigate to the correct source line.
 
-On first open, run `Ctrl+Shift+P` → `CMake: Configure` for the initial configuration.
+Make sure the Debug preset is selected in the CMake sidebar. The profile intentionally disables configure-on-open; the `Build` and `Rebuild` tasks run Configure before compiling, so F7/F6 also handle the initial configuration.
 
 ### 3. Project Structure
 
@@ -358,7 +368,7 @@ Before building, verify that all required tools are available:
 ```bash
 arm-none-eabi-gcc --version     # Win / Mac
 cmake --version                 # Win / Mac
-ninja --version                 # Mac
+ninja --version                 # Win / Mac
 openocd --version               # Win
 ```
 
@@ -368,15 +378,15 @@ If all commands output version information, the environment is ready.
 
 # 13. First Build
 
-Make sure the CMake sidebar shows the Debug preset is selected (required for debugging) and that Configure has been run.
+Make sure the CMake sidebar shows the Debug preset is selected (required for debugging). F7/F6 run Configure before compiling; a separate `CMake: Configure` command is not required for the normal task workflow.
 
-Incremental build:
+Build (configure + compile):
 
 ```
 F7
 ```
 
-Full rebuild:
+Rebuild (configure + clean + full compile):
 
 ```
 F6
@@ -397,7 +407,7 @@ Select the VS Code debug configuration:
 Flash only:
 
 ```
-F1-download / F4-download
+F1-flash / F4-flash
 ```
 
 Debug:
@@ -412,34 +422,37 @@ Start:
 F8
 ```
 
+The Flash launch configurations invoke `Flash (F1)` / `Flash (F4)` as `preLaunchTask`. Each task builds first, starts OpenOCD with the matching ST-Link interface and MCU target cfg, disables the unused GDB port, then programs, verifies, resets, and exits. After the task succeeds, `cppvsdbg` briefly launches `${env:ComSpec}` with `exit /b 0` so the Flash entries can remain in the Run and Debug selector without trying to run the ARM ELF on Windows. The ELF used for programming remains in the Flash task's OpenOCD command.
+
+The debug configurations invoke `Build` as `preLaunchTask`. Cortex-Debug then starts OpenOCD and GDB, programs the current ELF, and opens the debug session.
+
 Stop debugging:
 
 ```
 Shift + F8
 ```
 
-Do not use the red stop button in the VS Code debug toolbar.
-
-This may leave OpenOCD processes running in the background.
+In this tested workflow, do not use the red stop button in the VS Code debug toolbar. It can leave an OpenOCD process behind; use the configured `Shift + F8` shortcut, which handles launch and attach sessions separately.
 
 ---
 
 ### 14.1 Adding a New Chip Series
 
-The template provides launch configurations for F1 and F4 as examples. To add another series (e.g., H7, G0, L4), create a new pair of configs and a corresponding Flash task.
+The template provides Flash + debug launch configuration pairs for F1 and F4. To add another series (e.g., H7, G0, L4), create a new pair and a corresponding Flash task.
 
-**Launch configuration** — in `settings.json`, copy an existing debug config (e.g., `F1-debug`) and its matching download config (`F1-download`), then update:
+**Launch configuration** — in `settings.json`, copy an existing debug config (e.g., `F1-debug`) and its matching Flash wrapper (`F1-flash`), then update:
 
 | Field | How to change |
 |-------|---------------|
-| `name` | Debug: `{series}-debug`, Download: `{series}-download` |
-| `device` | Target MCU identifier, e.g., `STM32H743ZI` |
-| `configFiles` target | `stm32h7x.cfg` — browse `D:/OpenOCD/scripts/target/` for the correct file |
-| `svdFile` | `${workspaceFolder}/STM32H7xx.svd` |
+| `name` | Debug: `{series}-debug`, Flash: `{series}-flash` |
+| `device` | Debug config only: target MCU identifier, e.g., `STM32H743ZI` |
+| `configFiles` target | Debug config only: `stm32h7x.cfg` — browse `<path-to-openocd>/openocd/scripts/target/` for the correct file |
+| `svdFile` | Debug config only: `${workspaceFolder}/STM32H7xx.svd` |
+| `preLaunchTask` | Flash wrapper: matching task label, e.g. `Flash (H7)`; debug config: `Build` |
 
 `interface/stlink.cfg` in `configFiles` stays the same as long as you use ST-Link.
 
-**Flash task** — in `tasks.json`, copy `Flash (F1)`, update the target config file and the label. Make sure the download config's `preLaunchTask` matches the new task label.
+**Flash task** — in `tasks.json`, copy `Flash (F1)`, update the target config file and label. Make sure the Flash wrapper's `preLaunchTask` matches the new task label.
 
 ---
 
@@ -468,7 +481,7 @@ Reason:
 
 clangd is based on the Clang frontend and is not the same compiler frontend as arm-none-eabi-gcc. Parsing GCC-specific features across different compiler environments (such as `__attribute__`, compiler built-in macros, etc.) may generate many false-positive diagnostics. Microsoft C/C++ IntelliSense queries the actual compiler through `compilerPath`, automatically obtaining the real built-in macros and system include paths for better GCC compatibility.
 
-**Win**: uses `configurationProvider: ms-vscode.cmake-tools` — IntelliSense auto-syncs from CMake after Configure, no manual includePath/defines needed.
+**Win**: sets `compilerPath` to the actual `arm-none-eabi-gcc.exe` and uses `configurationProvider: ms-vscode.cmake-tools`. After Configure, cpptools gets compiler built-ins from ARM GCC and project include paths/defines from CMake; no manual includePath/defines are needed.
 
 **Mac**: uses explicit `C_Cpp.default.includePath` + `defines`. When switching target MCU series, update these manually. See CHIP_SWITCH.md for details.
 
@@ -507,7 +520,7 @@ cpptools has not received the correct includePath/defines. Win: verify `C_Cpp.de
 
 ## Q: CMake errors / cannot build after opening the project
 
-Make sure a build preset (Debug or Release) is selected in the CMake sidebar. On first open, run `Ctrl+Shift+P` → `CMake: Configure`. If the preset list is empty, check that `CMakePresets.json` exists.
+Make sure a build preset (Debug or Release) is selected in the CMake sidebar, then use F7/F6 so the task configures before compiling. If the preset list is empty, check that `CMakePresets.json` exists.
 
 ## Q: Newly added `.c` files cause linker errors
 
@@ -515,7 +528,7 @@ Make sure the source files are added to `CMakeLists.txt` through `target_sources
 
 ## Q: OpenOCD remains after debugging exits
 
-Always exit debugging with `Shift + F8`. Do not click the red stop button in the VS Code debug toolbar. If OpenOCD remains running on Windows, open Task Manager and terminate `openocd.exe`.
+Always exit debugging with `Shift + F8`. In this tested workflow, the red stop button can leave OpenOCD running, while the shortcut applies the configured stop/disconnect action for the session type. If OpenOCD remains running on Windows, open Task Manager and terminate `openocd.exe`.
 
 ## Q: Breakpoints have no effect / unable to navigate after pause (Release preset cannot debug)
 

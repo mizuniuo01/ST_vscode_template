@@ -175,16 +175,16 @@ Basic workflow:
 
 1. Install the required dependencies and configure the VSCode profile (see GUIDE.md).
 2. Generate an STM32 project using STM32CubeMX (Toolchain / IDE → CMake).
-3. Open the project in VS Code, select the Debug preset in the CMake sidebar, and run `CMake: Configure`.
+3. Open the project in VS Code and select the Debug preset in the CMake sidebar. F7/F6 configure before compiling.
 4. Add application source files to `CMakeLists.txt` through `target_sources()`. Simply placing files in `User/Src/` is not enough — CMakeLists.txt is the project entry point.
 5. Build with F7, flash and debug with F8.
 
 ### New Project Setup
 
 1. Open STM32CubeMX, configure your target MCU, and generate the project with **Toolchain / IDE → CMake**.
-2. Open the generated project folder in VS Code. In the CMake sidebar, select the **Debug** preset (required for debugging) and run `CMake: Configure`.
+2. Open the generated project folder in VS Code. In the CMake sidebar, select the **Debug** preset (required for debugging); the build tasks run Configure before compiling.
 3. Add application code under `User/Src/` and `User/Inc/`. Register every new `.c` file in `CMakeLists.txt` through `target_sources()` — CMakeLists.txt is the project entry point; simply placing files in the directory is not enough.
-4. Build with F7. On Windows, flash and debug with F8. Use `F1-download` / `F4-download` for flash only, `F1-debug` / `F4-debug` for debugging.
+4. Build with F7. On Windows, flash and debug with F8. Use `F1-flash` / `F4-flash` for flash only, `F1-debug` / `F4-debug` for debugging.
 
 The provided template configuration can be reused across multiple STM32 projects while keeping platform-specific settings isolated.
 
@@ -194,15 +194,15 @@ The provided template configuration can be reused across multiple STM32 projects
 
 ### Build
 
-- **F7** — Incremental build  
-- **F6** — Full rebuild (clean + build)  
+- **F7** — Build (configure + compile)
+- **F6** — Rebuild (configure + clean + full compile)
 - **F5** — Clean build artifacts  
 
 ### Flash & Debug
 
 - **F8** — Flash or start debugging (Windows only)
-- Select the `F1-download` / `F4-download` task for flash only (Windows only)
-- Select the `F1-debug` / `F4-debug` task for debugging (Windows only)
+- Select the `F1-flash` / `F4-flash` launch configuration for flash only (Windows only)
+- Select the `F1-debug` / `F4-debug` launch configuration for debugging (Windows only)
 
 - **Shift+F8** — Stop debugging session (Windows only)
 

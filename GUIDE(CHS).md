@@ -73,18 +73,20 @@ arm-none-eabi-gdb --version
 
 ---
 
-#### 4.2 安装 CMake
+#### 4.2 安装 CMake + Ninja
 
-CMake 用于工程配置和构建生成。Ninja 内置于 CMake，无需单独安装。
+CMake 负责工程配置，Ninja 是构建后端。Windows 下应显式安装两者，不要假定 CMake 安装包一定附带可用的 `ninja.exe`。
 
 ```powershell
-winget install Kitware.CMake
+winget install --id Kitware.CMake -e
+winget install --id Ninja-build.Ninja -e
 ```
 
 验证：
 
 ```bash
 cmake --version
+ninja --version
 ```
 
 ---
@@ -95,6 +97,14 @@ cmake --version
 
 ```
 D:/OpenOCD/
+```
+
+Windows 模板按以下解压目录结构配置：
+
+```text
+D:/OpenOCD/bin/openocd.exe
+D:/OpenOCD/openocd/scripts/interface/stlink.cfg
+D:/OpenOCD/openocd/scripts/target/
 ```
 
 验证：
@@ -181,7 +191,7 @@ Create Empty Profile
 
 | 扩展 | 用途 |
 |------|------|
-| `ms-vscode.cpptools` | C/C++ IntelliSense + cppdbg 调试后端 |
+| `ms-vscode.cpptools` | C/C++ IntelliSense + Windows Flash launch 包装器 |
 | `ms-vscode.cmake-tools` | CMake 集成：Configure / Build |
 | `marus25.cortex-debug` | ARM Cortex-M 调试 |
 | `xaver.clang-format` | C/C++ 代码格式化 |
@@ -232,7 +242,7 @@ Windows：
 <path-to-openocd>
 ```
 
-OpenOCD 目录（不含 `/bin`）。
+OpenOCD 安装根目录（不含 `/bin`）。按上述结构填写 `D:/OpenOCD`。如果使用的发行包把 `scripts/` 放在其他位置，需要同时修改 `settings.json` 中 cortex-debug 的 `configFiles` 和 `tasks.json` 中的 `-s` 参数。
 
 ---
 
@@ -270,7 +280,7 @@ CubeMX 会覆盖 `cmake/stm32cubemx/` 目录，根 `CMakeLists.txt` 只生成一
 
 > 调试必须使用 Debug 预设。Release 编译的固件无法打断点，暂停后无法跳转到目标行。
 
-首次打开时，`Ctrl+Shift+P` → `CMake: Configure` 执行初始配置。
+确保 CMake 侧边栏已选择 Debug 预设。Profile 有意关闭打开工程时自动 Configure；`Build` 和 `Rebuild` task 会在编译前执行 Configure，因此首次配置也可直接使用 F7/F6 完成。
 
 ### 3. 工程结构
 
@@ -360,7 +370,7 @@ compile_commands.json
 ```bash
 arm-none-eabi-gcc --version     # Win / Mac
 cmake --version                 # Win / Mac
-ninja --version                 # Mac
+ninja --version                 # Win / Mac
 openocd --version               # Win
 ```
 
@@ -370,15 +380,15 @@ openocd --version               # Win
 
 # 13. 第一次编译
 
-确认 CMake 侧边栏已选择 Debug 预设（调试需要），且已执行过 Configure。
+确认 CMake 侧边栏已选择 Debug 预设（调试需要）。F7/F6 会先 Configure 再编译，正常 task 工作流不需要单独执行 `CMake: Configure`。
 
-增量编译：
+编译（配置 + 编译）：
 
 ```
 F7
 ```
 
-完整重新编译：
+重新编译（配置 + 清理 + 完整编译）：
 
 ```
 F6
@@ -399,7 +409,7 @@ F5
 仅烧录：
 
 ```
-F1-download / F4-download
+F1-flash / F4-flash
 ```
 
 调试：
@@ -414,34 +424,37 @@ F1-debug / F4-debug
 F8
 ```
 
+Flash launch 配置通过 `preLaunchTask` 调用 `Flash (F1)` / `Flash (F4)`。每个 task 会先构建，再用对应的 ST-Link interface 和 MCU target cfg 启动 OpenOCD，关闭不使用的 GDB 端口，最后完成烧录、校验、复位并退出。task 成功后，`cppvsdbg` 会用 `exit /b 0` 短暂启动并退出 `${env:ComSpec}`，使 Flash 项可以保留在“运行和调试”选择器中，同时避免把 ARM ELF 当作 Windows 程序启动。真正用于烧录的 ELF 路径仍由 Flash task 的 OpenOCD 命令指定。
+
+debug 配置通过 `preLaunchTask` 调用 `Build`。随后 Cortex-Debug 启动 OpenOCD 和 GDB、下载当前 ELF，并进入调试会话。
+
 停止调试：
 
 ```
 Shift + F8
 ```
 
-不要使用 VS Code 调试工具栏中的红色停止按钮。
-
-该操作可能导致 OpenOCD 进程残留。
+按当前实测工作流，不要使用 VS Code 调试工具栏中的红色停止按钮，该操作可能残留 OpenOCD 进程；应使用已配置的 `Shift + F8`，它会分别处理 launch 和 attach 会话。
 
 ---
 
 ### 14.1 添加新芯片系列
 
-模板以 F1 和 F4 为例提供了 launch 配置。要支持其他系列（如 H7、G0、L4），需创建新的配置对和对应的 Flash 任务。
+模板以 F1 和 F4 为例提供了 Flash + debug launch 配置对。要支持其他系列（如 H7、G0、L4），需创建新的配置对和对应的 Flash 任务。
 
-**Launch 配置** — 在 `settings.json` 中复制现有调试配置（如 `F1-debug`）和对应的烧录配置（`F1-download`），修改以下字段：
+**Launch 配置** — 在 `settings.json` 中复制现有调试配置（如 `F1-debug`）和对应的 Flash 包装配置（`F1-flash`），修改以下字段：
 
 | 字段 | 修改方式 |
 |------|---------|
-| `name` | 调试：`{系列}-debug`，烧录：`{系列}-download` |
-| `device` | 目标芯片型号，如 `STM32H743ZI` |
-| `configFiles` target | `stm32h7x.cfg` — 在 `D:/OpenOCD/scripts/target/` 下查看正确文件名 |
-| `svdFile` | `${workspaceFolder}/STM32H7xx.svd` |
+| `name` | 调试：`{系列}-debug`，烧录：`{系列}-flash` |
+| `device` | 仅 debug 配置：目标芯片型号，如 `STM32H743ZI` |
+| `configFiles` target | 仅 debug 配置：`stm32h7x.cfg` — 在 `<path-to-openocd>/openocd/scripts/target/` 下查看正确文件名 |
+| `svdFile` | 仅 debug 配置：`${workspaceFolder}/STM32H7xx.svd` |
+| `preLaunchTask` | Flash 包装配置：对应任务标签，如 `Flash (H7)`；debug 配置：`Build` |
 
 只要使用 ST-Link，`configFiles` 中的 `interface/stlink.cfg` 无需修改。
 
-**Flash 任务** — 在 `tasks.json` 中复制 `Flash (F1)`，修改 target 配置文件名和任务标签。确保 download 配置的 `preLaunchTask` 指向新的任务标签。
+**Flash 任务** — 在 `tasks.json` 中复制 `Flash (F1)`，修改 target 配置文件名和任务标签。确保 Flash 包装配置的 `preLaunchTask` 指向新的任务标签。
 
 ---
 
@@ -470,7 +483,7 @@ Microsoft C/C++ IntelliSense
 
 clangd 是 clang 前端，不是 arm-none-eabi-gcc。跨编译器解析 GCC 特有语法（`__attribute__`、编译器内置宏等）会产生大量假阳性。Microsoft C/C++ IntelliSense 通过 `compilerPath` 直接 query 编译器，自动获取真实的内置宏和系统头文件路径，对 GCC 兼容性更好。
 
-**Win**：使用 `configurationProvider: ms-vscode.cmake-tools`，CMake Configure 后 IntelliSense 自动从 CMake 同步配置，无需手动配 includePath/defines。
+**Win**：将 `compilerPath` 指向实际的 `arm-none-eabi-gcc.exe`，并使用 `configurationProvider: ms-vscode.cmake-tools`。Configure 后，cpptools 从 ARM GCC 获取编译器内置配置，从 CMake 获取工程 includePath/defines，无需手动填写这些路径和宏。
 
 **Mac**：使用显式 `C_Cpp.default.includePath` + `defines`。换芯片时需手动修改，详见 CHIP_SWITCH.md。
 
@@ -509,7 +522,7 @@ cpptools 未正确获取 includePath/defines。Win：确认 `C_Cpp.default.confi
 
 ## Q: 打开工程后 CMake 报错 / 无法编译
 
-确认已在 CMake 侧边栏选择构建预设（Debug 或 Release）。首次打开工程需执行 `Ctrl+Shift+P` → `CMake: Configure`。如果预设列表为空，检查 `CMakePresets.json` 是否存在。
+确认已在 CMake 侧边栏选择构建预设（Debug 或 Release），再使用 F7/F6，让 task 在编译前执行 Configure。如果预设列表为空，检查 `CMakePresets.json` 是否存在。
 
 ## Q: 新增 `.c` 文件后编译报错 / 链接不到
 
@@ -517,7 +530,7 @@ cpptools 未正确获取 includePath/defines。Win：确认 `C_Cpp.default.confi
 
 ## Q: 调试退出后 OpenOCD 残留
 
-退出调试时使用 `Shift + F8`。不要点击 VS Code 调试工具栏红色停止按钮。如果已经残留，Windows 下打开任务管理器，结束 `openocd.exe`。
+退出调试时使用 `Shift + F8`。按当前实测工作流，红色停止按钮可能残留 OpenOCD，而快捷键会根据会话类型执行已配置的 stop/disconnect 动作。如果已经残留，Windows 下打开任务管理器，结束 `openocd.exe`。
 
 ## Q: 断点无反应 / 暂停后无法跳转到目标行（Release 预设无法调试）
 

@@ -25,6 +25,16 @@
     },
     {
         "key": "shift+f8",
+        "command": "workbench.action.debug.disconnect",
+        "when": "focusedSessionIsAttach && inDebugMode"
+    },
+    {
+        "key": "shift+f5",
+        "command": "-workbench.action.debug.disconnect",
+        "when": "focusedSessionIsAttach && inDebugMode"
+    },
+    {
+        "key": "shift+f8",
         "command": "workbench.action.debug.stop",
         "when": "inDebugMode && !focusedSessionIsAttach"
     },
