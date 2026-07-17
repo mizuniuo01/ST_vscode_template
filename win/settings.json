@@ -1,0 +1,83 @@
+{
+    // C/C++ — Build (CMake)
+    "cmake.environment": {
+        "PATH": "<path-to-arm-none-eabi-gcc>/bin;${env:PATH}"
+    },
+    "cmake.preferredGenerators": ["Ninja"],
+    "cmake.configureOnOpen": false,
+    "cmake.buildDirectory": "${workspaceFolder}/build/${buildType}",
+    "cmake.buildBeforeRun": true,
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+
+    // C/C++ — IntelliSense
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.default.intelliSenseMode": "gcc-arm",
+
+    // C/C++ — Debug & Flash
+    "debug.onTaskErrors": "debugAnyway",
+    "cortex-debug.armToolchainPath": "<path-to-arm-none-eabi-gcc>/bin",
+    "cortex-debug.openocdPath": "<path-to-openocd>/bin/openocd.exe",
+    "launch": {
+        "configurations": [
+            {
+                "name": "F1-download",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}/build/${command:cmake.buildType}/${workspaceFolderBasename}.elf",
+                "cwd": "${workspaceFolder}",
+                "miDebuggerPath": "<path-to-arm-none-eabi-gcc>/bin/arm-none-eabi-gdb.exe",
+                "preLaunchTask": "Flash (F1)",
+                "externalConsole": false
+            },
+            {
+                "name": "F1-debug",
+                "type": "cortex-debug",
+                "request": "launch",
+                "servertype": "openocd",
+                "cwd": "${workspaceFolder}",
+                "executable": "${workspaceFolder}/build/${command:cmake.buildType}/${workspaceFolderBasename}.elf",
+                "device": "STM32F103C8T6",
+                "serverArgs": ["-c", "adapter speed 3000"],
+                "configFiles": [
+                    "<path-to-openocd>/scripts/interface/stlink.cfg",
+                    "<path-to-openocd>/scripts/target/stm32f1x.cfg"
+                ],
+                "svdFile": "${workspaceFolder}/STM32F1xx.svd"
+            },
+            {
+                "name": "F4-download",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}/build/${command:cmake.buildType}/${workspaceFolderBasename}.elf",
+                "cwd": "${workspaceFolder}",
+                "miDebuggerPath": "<path-to-arm-none-eabi-gcc>/bin/arm-none-eabi-gdb.exe",
+                "preLaunchTask": "Flash (F4)",
+                "externalConsole": false
+            },
+            {
+                "name": "F4-debug",
+                "type": "cortex-debug",
+                "request": "launch",
+                "servertype": "openocd",
+                "cwd": "${workspaceFolder}",
+                "executable": "${workspaceFolder}/build/${command:cmake.buildType}/${workspaceFolderBasename}.elf",
+                "device": "STM32F407VET6",
+                "serverArgs": ["-c", "adapter speed 3000"],
+                "configFiles": [
+                    "<path-to-openocd>/scripts/interface/stlink.cfg",
+                    "<path-to-openocd>/scripts/target/stm32f4x.cfg"
+                ],
+                "svdFile": "${workspaceFolder}/STM32F4xx.svd"
+            }
+        ]
+    },
+
+    // C/C++ — Format
+    "clang-format.assumeFilename": "<path-to-home>/.clang-format",
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    }
+}

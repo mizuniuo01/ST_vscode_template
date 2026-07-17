@@ -2,46 +2,31 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "CMake Configure (Debug)",
+            "label": "Build",
             "type": "shell",
-            "command": "cmake --preset Debug . && ln -sf \"${command:cmake.buildDirectory}/compile_commands.json\" \"${workspaceFolder}/compile_commands.json\"",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
+            "command": "cmake",
+            "args": ["--build", "--preset", "${command:cmake.buildType}"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": ["$gcc"],
+            "detail": "增量编译"
+        },
+        {
+            "label": "Rebuild",
+            "type": "shell",
+            "command": "cmake --preset ${command:cmake.buildType} . && cmake --build --preset ${command:cmake.buildType}",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": ["$gcc"],
+            "detail": "重新配置并编译"
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "--preset", "${command:cmake.buildType}", "--target", "clean"],
+            "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
-            "detail": "CMake 配置（Debug）并建立 compile_commands.json 软链接"
-        },
-        {
-            "label": "CMake Build (Debug)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build", "--preset", "Debug"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "detail": "编译 STM32 工程"
-        },
-        {
-            "label": "CMake Clean",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build", "--preset", "Debug",
-                "--target", "clean"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": []
+            "detail": "清理编译产物"
         }
     ]
 }

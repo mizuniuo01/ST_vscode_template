@@ -1,0 +1,20 @@
+[
+    {
+        "key": "ctrl+[Backquote]",
+        "command": "workbench.action.terminal.toggleTerminal"
+    },
+    {
+        "key": "f5",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Clean"
+    },
+    {
+        "key": "f6",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Rebuild"
+    },
+    {
+        "key": "f7",
+        "command": "workbench.action.tasks.build"
+    }
+]

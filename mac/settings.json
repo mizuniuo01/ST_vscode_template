@@ -1,9 +1,57 @@
 {
+    // C/C++ — Build (CMake)
     "cmake.environment": {
-        "PATH": "/path/to/arm-none-eabi-gcc/bin:${env:PATH}"
+        "PATH": "<path-to-arm-none-eabi-gcc>/bin:${env:PATH}"
     },
     "cmake.preferredGenerators": ["Ninja"],
     "cmake.configureOnOpen": false,
     "cmake.buildDirectory": "${workspaceFolder}/build/${buildType}",
-    "C_Cpp.intelliSenseEngine": "disabled"
+    "cmake.buildBeforeRun": true,
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+
+    // C/C++ — IntelliSense
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.default.compilerPath": "<path-to-arm-none-eabi-gcc>/bin/arm-none-eabi-gcc",
+    "C_Cpp.default.intelliSenseMode": "gcc-arm",
+    "C_Cpp.default.cStandard": "c11",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/Core/Inc",
+        "${workspaceFolder}/User/Inc",
+        "${workspaceFolder}/Drivers/STM32F4xx_HAL_Driver/Inc",
+        "${workspaceFolder}/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy",
+        "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32F4xx/Include",
+        "${workspaceFolder}/Drivers/CMSIS/Include"
+    ],
+    "C_Cpp.default.defines": [
+        "STM32F407xx",
+        "USE_HAL_DRIVER",
+        "DEBUG"
+    ],
+
+    // Debug
+    "debug.onTaskErrors": "debugAnyway",
+
+    // Editor
+    "editor.fontLigatures": false,
+    "explorer.confirmDragAndDrop": false,
+    "explorer.confirmDelete": false,
+
+    // Git
+    "git.path": "/usr/bin/git",
+    "git.autofetch": true,
+    "git.confirmSync": false,
+
+    // Terminal
+    "terminal.integrated.fontFamily": "JetBrains Mono",
+
+    // C/C++ — Format
+    "clang-format.executable": "/opt/homebrew/bin/clang-format",
+    "[c]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "[cpp]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "xaver.clang-format"
+    }
 }

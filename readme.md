@@ -1,210 +1,321 @@
-# VS Code + STM32CubeMX 开发模板
+# STM32 Project Template for VS Code
 
-基于 **VS Code + STM32CubeMX + CMake + Ninja + arm-none-eabi-gcc** 的轻量级开发流，彻底抛弃 STM32CubeIDE。
+> A transparent and customizable VSCode-based development workflow for STM32 microcontrollers.
 
-本模板以 STM32F407VET6 为例，但适用于 CubeMX 支持的大部分 STM32 芯片（F0/F1/F2/F3/F4/G0/G4/H5/H7/L0/L1/L4/L5/U5/WB/WL 等），只要生成时选择 CMake 工具链即可。
+A minimal and reproducible project template based on VSCode, STM32 development tools and an independent embedded toolchain.
 
-支持 Windows 和 macOS 双平台。
+It provides reference configurations and project templates rather than a single fixed application project.
 
----
+This template includes:
 
-## 目录结构
+- STM32CubeMX
+- STM32 HAL / CMSIS
+- ARM GNU Toolchain (`arm-none-eabi-gcc`)
+- CMake + Ninja
+- OpenOCD + GDB
 
-```
-ST_vscode_template/
-├── mac/                    # macOS 平台 VS Code Profile 配置模板
-│   ├── settings.json       ← 粘贴到 VS Code ST profile 全局设置
-│   └── tasks.json          ← 粘贴到 VS Code ST profile 全局任务
-├── win/
-└── readme.md
-```
+It is designed to work without STM32CubeIDE, providing a lightweight, layered and fully controllable development workflow.
 
-> 根目录 `.gitignore` 中写的是 `local`，表示整个 `local/` 目录不会被 git 追踪。`local/` 是我放在本地的模版工程。clone 本仓库的人无需关心它，按下方步骤从 CubeMX 生成自己的工程即可。
->
-> 你自己的工程根目录需要另外放一份 `.gitignore`，内容见第四步。
+The template supports both Windows and macOS through profile-level VSCode configuration that can be reused across multiple STM32 projects.
 
-`settings.json` 和 `tasks.json` 需粘贴到 VS Code 的 **ST profile** 全局配置中，不是工程内的 `.vscode/`。通过此举可以不用每次新建工程都重新配置 json。
+Windows provides the complete build, flash and debug workflow.
 
----
+macOS is currently supported for project development and build verification only. Flash and debug support on macOS is not included yet.
 
-## 前置依赖
-
-| 工具 | 说明 |
-|------|------|
-| STM32CubeMX | ST 官网下载，用于生成 CMake 工程和 HAL 驱动代码 |
-| arm-none-eabi-gcc | ARM 嵌入式交叉编译器，**必须包含 newlib** |
-| CMake (≥3.22) | 构建系统 |
-| Ninja | 构建后端 |
-| VS Code 扩展 | `llvm-vs-code-extensions.vscode-clangd`、`ms-vscode.cmake-tools`、`ms-vscode.cpptools` |
-
-> **编译器注意：** 在 macOS 上 Homebrew 的 `arm-none-eabi-gcc` 是 `--without-headers` 编译的，缺少 newlib，**不可用**。推荐使用 xpack 分发版（见下方安装步骤）。
->
-> C_Cpp 扩展仅用于调试，其 intellisense 会在 `settings.json` 中禁用（与 clangd 冲突）。
+This template is intended for embedded developers who prefer a clean and IDE-independent workflow.
 
 ---
 
-## macOS 配置步骤
+## Highlights
 
-### 第一步：安装工具链
+- **Independent development toolchain**  
+  All development tools are installed and managed separately from STM32CubeIDE.
 
-```bash
-# 安装 xpm（xpack 包管理器）
-npm install -g xpm
+- **IDE-independent development workflow**  
+  Build, flash and debug are implemented through standard tools such as CMake, Ninja, GDB and OpenOCD, providing a lightweight and fully controllable development environment.
 
-# 安装 arm-none-eabi-gcc（自带 newlib）
-xpm install @xpack-dev-tools/arm-none-eabi-gcc@latest --global
-```
+- **CubeMX-based project generation**  
+  STM32CubeMX is used for hardware configuration and code generation, while the build system and development workflow remain independent from vendor IDE projects.
 
-记下安装路径，例如 `~/Library/xPacks/@xpack-dev-tools/arm-none-eabi-gcc/15.2.1-1.1.1/.content/bin`。
+- **CMake project configuration**  
+  CMakeLists.txt serves as the project configuration entry point, managing source files, include directories and build options. Detailed project customization is described in GUIDE.md.
 
-### 第二步：安装 VS Code 扩展
+- **CMake-based build system**  
+  The project uses CMake as the build configuration layer and Ninja as the build backend, providing a modern, portable and maintainable build workflow.
 
-必装：**clangd**、**CMake Tools**、**C/C++**（仅调试）。
+- **VSCode profile-based configuration**  
+  Toolchain paths, tasks and keybindings are managed through VSCode profiles, allowing the same configuration model to be reused across multiple STM32 projects.
 
-其余按需（Cortex-Debug 烧录等，macOS 暂不涉及）。
+- **Cross-platform development support (Windows / macOS)**  
+  Both platforms share the same project structure and source code workflow. Windows provides the complete build, flash and debug workflow, while macOS currently focuses on project development and build verification.
 
-### 第三步：创建 VS Code Profile
+- **Cross-platform project structure**  
+  Platform-specific differences are isolated into separate VSCode profiles and configuration files, while core project files remain consistent. This allows projects to be synchronized and developed across platforms through Git.
 
-在 VS Code 中为 ST 开发单独建一个 **Profile**，`settings.json`、`tasks.json` 配置在 Profile 级别，所有 STM32 工程共享。
+- **Standard Cortex-M debug architecture**  
+  The workflow is based on the standard VS Code + GDB + OpenOCD debugging pipeline, enabling SWD debugging without dependency on STM32CubeIDE.
 
-1. VS Code 左下角齿轮 → **Profiles** → **Create Profile**
-2. 输入名称（如 `ST`），选择从空白创建
-3. 在该 Profile 下打开命令面板 (`Cmd+Shift+P`)
-4. 搜索 **Open User Settings (JSON)**，将 `mac/settings.json` 的内容粘贴进去
-5. 将 `/path/to/arm-none-eabi-gcc/bin` 替换为第一步的实际路径
-6. 搜索 **Open User Tasks**，将 `mac/tasks.json` 的内容粘贴进去
-
-### 第四步：配置 clangd（一次性）
-
-创建 `~/.config/clangd/config.yaml`：
-
-```yaml
-Diagnostics:
-  Suppress:
-    - unused-includes
-    - unknown_typename
-    - unknown_typename_suggest
-    - typename_requires_specqual
-```
-
-这几条仅抑制 clangd 对嵌入式 CMSIS/HAL 代码的误报波浪线，不影响编译。
+- **Customizable workflow**  
+  The provided configuration serves as both a ready-to-use setup and a reference design. Users can customize build options, compiler settings, debug tools, keybindings and other VSCode configurations according to their own workflow.
 
 ---
 
-## 新建工程流程
+## Project Structure
 
-### 1. CubeMX 生成代码
+> The template separates VSCode profile configuration from STM32 project files and documentation, keeping platform-specific settings isolated while maintaining reusable project configurations.
 
-- 打开 **STM32CubeMX**（不是 CubeIDE），选择芯片（以 **STM32F407VET6** 为例）
-- 配好引脚、时钟、外设
-- **Project Manager → Project → Toolchain / IDE → CMake**
-- 点击 **GENERATE CODE**
+- `win/`  
+  VSCode profile configuration for Windows, including settings, tasks and keybindings.
 
-CubeMX 会自动生成 `CMakeLists.txt`、`CMakePresets.json`、`cmake/gcc-arm-none-eabi.cmake`、`cmake/stm32cubemx/CMakeLists.txt` 及所有 HAL 驱动文件。
+- `mac/`  
+  VSCode profile configuration for macOS, aligned with the Windows setup with platform-specific differences.
 
-> 其他 STM32 芯片同理，只要生成时选了 CMake，后续流程完全一致。
+- `CHIP_SWITCH.md`  
+  Quick reference for switching between different STM32 devices.
 
-### 2. VS Code 打开工程
+- `GUIDE.md`  
+  English setup and usage guide, covering detailed configuration and project onboarding.
 
-在 **ST Profile** 下打开工程文件夹。
+- `GUIDE(CHS).md`  
+  Chinese version of the setup and usage guide.
 
-### 3. 添加 `.gitignore`
-
-在工程根目录新建 `.gitignore`，写入：
-
-```
-build
-mx.scratch
-compile_commands.json
-.cache
-.vscode
-.settings
-```
-
-### 4. Configure
-
-运行 **CMake Configure (Debug)** 任务（`Cmd+Shift+P` → `Tasks: Run Task`），或在 CMake Tools 侧边栏点击 Configure。
-
-Configure 完成后会自动在工程根目录创建 `compile_commands.json` 软链接（→ `build/Debug/compile_commands.json`），clangd 能立即开始工作。
-
-### 5. 开始编码
-
-clangd 通过 `compile_commands.json` 拿到所有编译参数，代码补全、跳转、错误提示全部就绪。
-
-构建方式二选一：运行默认 **CMake Build (Debug)** 任务，或使用 CMake Tools 的 Build 命令。快捷键按个人习惯自行绑定。
+> The `win/` and `mac/` Profile configurations provide pre-configured templates with placeholder paths. Users only need to replace the paths to get started. However, the configuration surface is large and the templates may not cover every setting — users should review and supplement the configuration as needed.
 
 ---
 
-## 工程目录结构约定
+## Toolchain
 
+This workflow separates STM32 development tools from the IDE environment, keeping the build and debug infrastructure independently managed.
+
+The development workflow is based on the following components:
+
+- **STM32CubeMX**  
+  Provides graphical hardware configuration and code generation for STM32 devices.
+
+- **STM32 HAL / CMSIS**  
+  Provides CMSIS device support, startup files and STM32 HAL peripheral drivers required for firmware development.
+
+- **ARM GNU Toolchain (`arm-none-eabi-gcc`)**  
+  Used for firmware compilation, linking and debug symbol generation.
+
+- **CMake + Ninja**  
+  Provides a modern build system workflow. CMake manages project configuration through CMakeLists.txt, while Ninja performs the actual build process.
+
+- **GDB (ARM GNU Toolchain)**  
+  Used as the debugging backend for breakpoint control, stepping and target inspection.
+
+- **OpenOCD**  
+  Provides flash programming and debug server support between GDB and STM32 debug probes.
+
+This setup avoids dependency on STM32CubeIDE and enables a transparent, reproducible and fully controllable development workflow.
+
+---
+
+## Workflow Overview
+
+The workflow separates the development environment into independent layers:
+
+- VSCode provides the user interface and workflow orchestration layer.
+- VSCode tasks and profiles manage project operations and platform-specific configurations.
+- STM32CubeMX provides hardware configuration and generates STM32 project files.
+- CMakeLists.txt defines project sources, include directories and build options.
+- CMake manages project configuration and build generation.
+- Ninja executes the build process.
+- ARM GNU Toolchain provides compilation, linking and debug symbol generation.
+
+The workflow keeps each component visible and independently managed, allowing users to customize or extend individual components.
+
+For debugging, VSCode invokes Cortex-Debug, which connects GDB with OpenOCD and the STM32 target through SWD.
+
+---
+
+## VSCode Integration
+
+This workflow uses VSCode as the primary development environment.
+
+VSCode acts as the workflow orchestration and integration layer, while the underlying toolchain remains independently managed.
+
+The workflow uses several VSCode extensions to integrate with external development tools:
+
+- **C/C++ Extension**  
+  Provides IntelliSense support and C/C++ language features.
+
+- **CMake Tools**  
+  Provides CMake project configuration and build integration.
+
+- **Cortex-Debug**  
+  Provides ARM Cortex-M debugging integration through GDB and OpenOCD.
+
+- **clang-format**  
+  Provides C/C++ code formatting support. The `.clang-format` rules file is not provided by this template — users should configure it according to their own coding style.
+
+- **MCU Debug extensions (optional)**  
+  Provide additional debugging features such as memory, peripheral and debug information visualization.
+
+These extensions connect VSCode with the underlying development tools, while the toolchain itself remains independently installed, managed and replaceable.
+
+### IntelliSense
+
+The template uses Microsoft C/C++ IntelliSense instead of clangd.
+
+The IntelliSense configuration is aligned with the ARM GNU Toolchain, allowing VSCode to correctly resolve embedded headers, compiler definitions and STM32 device-specific configurations.
+
+This avoids inconsistencies caused by using a different compiler frontend, especially when working with STM32 HAL, CMSIS headers and compiler-specific definitions.
+
+---
+
+## Quick Start
+
+For detailed installation and configuration instructions, please refer to:
+
+- [GUIDE.md](GUIDE.md) (English)
+- [GUIDE(CHS).md](GUIDE(CHS).md) (Chinese)
+
+Basic workflow:
+
+1. Install the required dependencies and configure the VSCode profile (see GUIDE.md).
+2. Generate an STM32 project using STM32CubeMX (Toolchain / IDE → CMake).
+3. Open the project in VS Code, select the Debug preset in the CMake sidebar, and run `CMake: Configure`.
+4. Add application source files to `CMakeLists.txt` through `target_sources()`. Simply placing files in `User/Src/` is not enough — CMakeLists.txt is the project entry point.
+5. Build with F7, flash and debug with F8.
+
+### New Project Setup
+
+1. Open STM32CubeMX, configure your target MCU, and generate the project with **Toolchain / IDE → CMake**.
+2. Open the generated project folder in VS Code. In the CMake sidebar, select the **Debug** preset (required for debugging) and run `CMake: Configure`.
+3. Add application code under `User/Src/` and `User/Inc/`. Register every new `.c` file in `CMakeLists.txt` through `target_sources()` — CMakeLists.txt is the project entry point; simply placing files in the directory is not enough.
+4. Build with F7. On Windows, flash and debug with F8. Use `F1-download` / `F4-download` for flash only, `F1-debug` / `F4-debug` for debugging.
+
+The provided template configuration can be reused across multiple STM32 projects while keeping platform-specific settings isolated.
+
+---
+
+## Usage
+
+### Build
+
+- **F7** — Incremental build  
+- **F6** — Full rebuild (clean + build)  
+- **F5** — Clean build artifacts  
+
+### Flash & Debug
+
+- **F8** — Flash or start debugging (Windows only)
+- Select the `F1-download` / `F4-download` task for flash only (Windows only)
+- Select the `F1-debug` / `F4-debug` task for debugging (Windows only)
+
+- **Shift+F8** — Stop debugging session (Windows only)
+
+### Workflow
+
+All operations are executed through VSCode tasks and keybindings defined in the project profile.
+
+These tasks internally invoke the build system (CMake + Ninja) and debugging tools (OpenOCD + GDB).
+
+The development workflow keeps build, flash and debug operations explicit and configurable, allowing users to inspect or modify each step according to their requirements.
+
+---
+
+## Debug Architecture
+
+The debug pipeline is built on a standard Cortex-M toolchain, orchestrated through VSCode:
+
+```text
+VSCode + Cortex-Debug
+        ↓
+        GDB
+        ↓
+        OpenOCD
+        ↓
+        ST-Link
+        ↓
+        SWD
+        ↓
+        STM32
 ```
-MyProject/
-├── CMakeLists.txt            # 顶层构建脚本，用户源文件在此添加
-├── CMakePresets.json         # Debug / Release preset
-├── cmake/
-│   ├── gcc-arm-none-eabi.cmake   # 跨平台工具链文件
-│   └── stm32cubemx/CMakeLists.txt  # CubeMX 生成，不手动改
-├── Core/
-│   ├── Inc/                  # HAL 配置头文件
-│   └── Src/                  # main.c、HAL 初始化
-├── Drivers/                  # CMSIS + STM32 HAL 库
-├── User/                     # 用户代码（自行创建）
-│   ├── Inc/
-│   └── Src/
-├── startup_*.s               # 启动汇编（芯片相关，CubeMX 生成）
-├── *_FLASH.ld                # 链接脚本（芯片相关，CubeMX 生成）
-└── compile_commands.json     # 软链接 → build/Debug/compile_commands.json
-```
 
-添加用户源文件时，在 `CMakeLists.txt` 的 `target_sources` 和 `target_include_directories` 中添加对应路径即可。
+- **VSCode + Cortex-Debug**  
+  Acts as the orchestration and integration layer, providing a frontend for launching and managing debug sessions.
 
-CubeMX 重新生成代码时只会修改它管理的文件（`Core/`、`Drivers/`、`cmake/stm32cubemx/`），你在 `CMakeLists.txt` 和 `User/` 中的改动不受影响。
+- **GDB**  
+  Handles breakpoints, stepping, variable inspection and target state control.
+
+- **OpenOCD**  
+  Serves as the debug server, connecting GDB with the target device through the debug probe.
+
+- **ST-Link**  
+  Provides the physical connection between the host computer and the STM32 device.
+
+- **SWD (Serial Wire Debug)**  
+  Provides the standard debug interface used to communicate with the Cortex-M target.
+
+The VSCode debug extensions provide integration between the user workflow and the underlying tools, while keeping the complete development pipeline visible and configurable.
 
 ---
 
-## 常用操作
+## FAQ
 
-| 操作 | 方式 |
-|------|------|
-| 编译 | 默认 build task 或 CMake Tools Build（快捷键自行绑定） |
-| 重新 Configure | `Cmd+Shift+P` → `Tasks: Run Task` → `CMake Configure (Debug)` |
-| 清理 | `Cmd+Shift+P` → `Tasks: Run Task` → `CMake Clean` |
-| 切换 Debug/Release | CMake Tools 侧边栏选择 preset |
+### Toolchain & Build
 
----
+**Q: Compiler not found (`arm-none-eabi-gcc` not found)**  
+Check that the ARM GNU Toolchain is correctly installed and that the compiler path is configured properly in the VSCode profile.
 
-## 跨平台说明
+**Q: CMake configuration fails or the build system cannot be generated**  
+Ensure that CMake and Ninja are installed correctly and that the selected toolchain file points to a valid ARM GNU Toolchain installation.
 
-| 组件 | Win | Mac | 冲突？ |
-|------|-----|-----|--------|
-| `cmake/gcc-arm-none-eabi.cmake` | 完全一样（`arm-none-eabi-` 靠 PATH 找到） | 同 | 无 |
-| 所有 CubeMX 生成文件 | 一样 | 一样 | 无 |
-| 工具链 PATH | 系统环境变量 / Profile `cmake.environment` | Profile `cmake.environment` | 各自本地配 |
-| VS Code Profile 配置 | `win/`（待补充） | `mac/` | 各自本地配 |
-| clangd 全局配置 | 可选 | `~/.config/clangd/config.yaml` | 各自本地配 |
-
-所有 CubeMX 生成文件 + 用户代码均可正常提交 git，Win/Mac 完全共用。
+**Q: Newly added `.c` files are not compiled**  
+Make sure the source files are added to `CMakeLists.txt` through the corresponding `target_sources()` configuration. Simply placing files in the project directory is not enough — CMakeLists.txt is the project source management entry point.
 
 ---
 
-## 常见问题
+### STM32CubeMX
 
-**Q: 编译报 `stdint.h: No such file or directory`**
+**Q: Should STM32CubeMX be installed separately from STM32CubeIDE?**  
+Yes. This workflow uses the standalone STM32CubeMX application and does not depend on STM32CubeIDE.
 
-编译器缺少 newlib（C 标准库头文件）。检查是否用的是 Homebrew 的 `--without-headers` 版本，换用 xpack 或 ARM 官方工具链。
+**Q: How should CubeMX generated files be managed?**  
+CubeMX is responsible for hardware configuration and code generation. The generated HAL, CMSIS and initialization files are managed as part of the STM32 project, while custom application code and build configuration should be maintained separately.
 
-**Q: 代码里一堆红色波浪线但编译没问题**
+**Q: CubeMX regeneration overwrites project files. What should I do?**  
+Avoid modifying CubeMX-generated files outside designated user sections whenever possible. Keep user application code separated from generated code and maintain custom build configuration outside CubeMX-managed files.
 
-clangd 的误报，创建 `~/.config/clangd/config.yaml`（见配置步骤第四步）可消除大部分。
+---
 
-**Q: clangd 没有代码补全/跳转**
+### Project Structure
 
-确认工程根目录有 `compile_commands.json` 软链接。如果没有，手动运行一次 Configure task 或执行 `ln -sf build/Debug/compile_commands.json compile_commands.json`。
+**Q: Why are STM32 source files stored inside the project directory instead of external SDK paths?**  
+STM32CubeMX generates project-level HAL/CMSIS dependencies, allowing each project to remain self-contained. Unlike SDK-based workflows where source files are referenced from external SDK paths, STM32 projects normally keep generated dependencies inside the project directory. This makes the project structure easier to synchronize and reproduce across different environments, without relying on an external SDK path during the build process.
 
-**Q: CubeMX 重新生成后要不要重新 Configure**
+---
 
-如果只改了引脚/外设配置（`Core/` 内变化），编译一次即可，CMake 会自动检测变化。如果改了 CMake 结构（增删源文件），需要重新 Configure。
+### IntelliSense
 
-**Q: 新建 `.c` 文件后编译找不到**
+**Q: Code has red underlines but the project builds successfully**  
+Check that the C/C++ extension has received the correct include paths and compiler definitions from the CMake configuration.
 
-确认文件已加到 `CMakeLists.txt` 的 `target_sources` 中，且头文件路径在 `target_include_directories` 中。
+**Q: Why does this template use Microsoft C/C++ IntelliSense instead of clangd?**  
+The configuration is aligned with the ARM GNU Toolchain used for building the firmware. This provides better consistency when resolving STM32 HAL, CMSIS headers and compiler-specific definitions.
+
+---
+
+### Debug & Flash
+
+**Q: OpenOCD cannot connect to the target device**  
+Check the debug probe connection, target configuration and OpenOCD settings.
+
+**Q: Debug session does not exit cleanly**  
+Always stop debugging using the configured VSCode task or shortcut. Improper termination may leave OpenOCD processes running in the background.
+
+**Q: Flash programming fails**  
+Verify that OpenOCD is correctly configured for the selected STM32 target and that the debug probe is accessible.
+
+---
+
+### General
+
+**Q: Why not use STM32CubeIDE?**  
+This project does not aim to replace STM32CubeIDE for every use case.
+
+Instead, it provides an independent and transparent development workflow based on standard tools such as CMake, ARM GNU Toolchain, OpenOCD and VSCode.
+
+By separating the editor, build system and debug infrastructure, users can inspect, customize and extend each component according to their own requirements.

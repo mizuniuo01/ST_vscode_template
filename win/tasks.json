@@ -1,0 +1,65 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "--preset", "${command:cmake.buildType}"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": ["$gcc"],
+            "detail": "增量编译"
+        },
+        {
+            "label": "Rebuild",
+            "type": "shell",
+            "command": "cmd",
+            "args": ["/c", "cmake --preset ${command:cmake.buildType} . && cmake --build --preset ${command:cmake.buildType}"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": ["$gcc"],
+            "detail": "重新配置并编译"
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "--preset", "${command:cmake.buildType}", "--target", "clean"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "detail": "清理编译产物"
+        },
+        {
+            "label": "Flash (F1)",
+            "type": "shell",
+            "command": "<path-to-openocd>/bin/openocd.exe",
+            "args": [
+                "-s", "<path-to-openocd>/scripts",
+                "-f", "interface/stlink.cfg",
+                "-f", "target/stm32f1x.cfg",
+                "-c", "adapter speed 3000",
+                "-c", "program ./build/${command:cmake.buildType}/${workspaceFolderBasename}.elf verify reset exit"
+            ],
+            "dependsOn": "Build",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "detail": "编译并烧录 STM32F1"
+        },
+        {
+            "label": "Flash (F4)",
+            "type": "shell",
+            "command": "<path-to-openocd>/bin/openocd.exe",
+            "args": [
+                "-s", "<path-to-openocd>/scripts",
+                "-f", "interface/stlink.cfg",
+                "-f", "target/stm32f4x.cfg",
+                "-c", "adapter speed 3000",
+                "-c", "program ./build/${command:cmake.buildType}/${workspaceFolderBasename}.elf verify reset exit"
+            ],
+            "dependsOn": "Build",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "detail": "编译并烧录 STM32F4"
+        }
+    ]
+}
